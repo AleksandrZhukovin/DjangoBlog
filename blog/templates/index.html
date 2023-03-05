@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>{{ val }}</h1>
+<h1>{{ user.username }}</h1>
+
+{% if topics %}
+{% for t in topics %}
+<p>{{ t.name }} {{ t.time }} <a href="/topic{{ t.id }}">go</a> </p>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>{{ topic.name }}</h3>
+{% for c in comments %}
+<p><b>{{ c.user.username }}</b> {{ c.time }} {{ c.body }}</p>
+{% endfor %}
+
+<form method="POST">
+  {% csrf_token %}
+  {{ form }}
+  <input type="submit" value="Add">
+</form>
+
+{% endblock %}

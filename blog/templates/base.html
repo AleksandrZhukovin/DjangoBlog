@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <div>
+        <a href="/">Home</a>
+      <a href="/registration">Sign Up</a>
+        <a href="/login">Log In</a>
+        <a href="/add_topic">add topic</a>
+        {% if user %}
+        <p>{{ user.username }}</p>
+        {% endif %}
+    </div>
+    <hr>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,11 +1,5 @@
 from django import forms
-from django.core.validators import EmailValidator
-
-
-class Registration(forms.Form):
-    name = forms.CharField()
-    email = forms.CharField(validators=[EmailValidator])
-    password = forms.CharField(widget=forms.PasswordInput)
+from .models import Topic, Post, User, Avatar
 
 
 class LogIn(forms.Form):
@@ -13,12 +7,19 @@ class LogIn(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput)
 
 
-class AddTopic(forms.Form):
-    name = forms.CharField()
-    text = forms.CharField()
+class AddTopic(forms.ModelForm):
+    class Meta:
+        model = Topic
+        fields = ['name', 'text']
 
 
-class AddPost(forms.Form):
-    text = forms.CharField(widget=forms.Textarea(attrs={"rows": "3"}))
+class AddPost(forms.ModelForm):
+    class Meta:
+        model = Post
+        fields = ['body']
 
 
+class AddAvatar(forms.ModelForm):
+    class Meta:
+        model = Avatar
+        fields = ['avatar']

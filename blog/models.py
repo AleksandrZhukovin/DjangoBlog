@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.timezone import now
+from django.urls import reverse
 
 
 class Topic(models.Model):
@@ -16,4 +16,10 @@ class Post(models.Model):
     body = models.CharField(max_length=1000)
     time = models.DateTimeField(auto_now_add=True)
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class Avatar(models.Model):
+    id = models.IntegerField(primary_key=True)
+    avatar = models.ImageField(upload_to='avatars')
     user = models.ForeignKey(User, on_delete=models.CASCADE)

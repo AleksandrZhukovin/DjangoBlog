@@ -1,116 +1,115 @@
-from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from .forms import Registration, LogIn, AddTopic, AddPost
-from .models import User, Topic, Post
+from django.urls import reverse_lazy
+from django.utils.decorators import method_decorator
+from .forms import LogIn, AddTopic, AddPost, AddAvatar
+from .models import User, Topic, Post, Avatar
+# from django.contrib.auth.models import Group
+from django.views.generic.base import TemplateView, RedirectView
+from django.views.generic.list import ListView
+from django.views.generic.edit import CreateView, FormView
 
 
-def index(request):
-    user = request.user
-    topics = Topic.objects.all()
+class HomeView(ListView):
+    model = Topic
+    template_name = 'index.html'
+    context_object_name = 'topics'
 
-    context = {
-        'title': "Home",
-        'user': user,
-        'topics': topics
-    }
-    return render(request, 'index.html', context)
-
-
-def registration(request):
-    if request.method == "POST":
-        form = Registration(request.POST)
-
-        if form.is_valid():
-            name = form.cleaned_data['name']
-            email = form.cleaned_data['email']
-            password = form.cleaned_data['password']
-            user = User.objects.create_user(name, email, password)
-            user.save()
-
-    else:
-        form = Registration()
-
-    context = {
-        'title': 'Sign Up',
-        'form': form
-    }
-    return render(request, 'registration.html', context)
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Home'
+        context['user'] = self.request.user
+        return context
 
 
-def login_page(request):
-    if request.method == "POST":
-        form = LogIn(request.POST)
-
-        if form.is_valid():
-            username = form.cleaned_data['name']
-            password = form.cleaned_data['password']
-            user = authenticate(request, username=username, password=password)
-
-            if user is not None:
-                login(request, user)
-                return redirect('/')
-    else:
-        form = LogIn()
-
-    context = {
-        'title': 'Log In',
-        'form': form
-    }
-    return render(request, 'login.html', context)
+class RegistrationView(CreateView):
+    model = User
+    fields = ['username', 'email', 'password']
+    template_name = 'registration.html'
+    success_url = reverse_lazy('index')
 
 
-@login_required
-def test(request):
-    context = {
-        'title': 'Test',
-        'val': 'IT IS OK'
-    }
-    return render(request, 'test.html', context)
+class LoginView(FormView):
+    template_name = 'login.html'
+    form_class = LogIn
+    success_url = reverse_lazy('index')
+
+    def form_valid(self, form):
+        username = form.cleaned_data['name']
+        password = form.cleaned_data['password']
+        user = authenticate(self.request, username=username, password=password)
+        if user is not None:
+            login(self.request, user)
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Log In'
+        return context
 
 
-def logout_page(request):
-    logout(request)
-    return redirect('/')
+class LogoutView(RedirectView):
+    pattern_name = 'index'
+
+    def get_redirect_url(self, *args, **kwargs):
+        logout(self.request)
+        return super().get_redirect_url(*args, **kwargs)
 
 
-@login_required
-def add_topic(request):
-    user = request.user
-    if request.method == "POST":
-        form = AddTopic(request.POST)
-        if form.is_valid():
-            name = form.cleaned_data['name']
-            text = form.cleaned_data['text']
-            user = request.user
-            t = Topic(name=name, text=text, user=user)
-            t.save()
-            return redirect('/')
-    else:
-        form = AddTopic()
-    context = {
-        'title': 'Add Topic',
-        'user': user,
-        'form': form
-    }
-    return render(request, 'add_topic.html', context)
+class AddTopicView(CreateView):
+    template_name = 'add_topic.html'
+    model = Topic
+    form_class = AddTopic
+    success_url = reverse_lazy('index')
+
+    @method_decorator(login_required)
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Add Topic'
+        return context
 
 
-def topic(request, topic_id):
-    t = Topic.objects.get(id=topic_id)
-    comments = Post.objects.filter(topic=t)
-    if request.method == "POST":
-        form = AddPost(request.POST)
-        if form.is_valid():
-            post = form.cleaned_data['text']
-            p = Post(body=post, topic=t, user=request.user)
-            p.save()
-    else:
-        form = AddPost()
-    context = {
-        'form': form,
-        'title': t.name,
-        'comments': comments,
-        'topic': t
-    }
-    return render(request, 'topic.html', context)
+class TopicView(CreateView):
+    model = Post
+    template_name = 'topic.html'
+    form_class = AddPost
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.topic = Topic.objects.get(id=self.kwargs['pk'])
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Topic'
+        context['comments'] = Post.objects.filter(topic=Topic.objects.get(id=self.kwargs['pk']))
+        return context
+
+    def get_success_url(self):
+        return f'/topic{self.kwargs["pk"]}'
+
+
+class ProfileView(TemplateView):
+    template_name = 'profile.html'
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'{self.request.user.username} Profile'
+        context['user'] = self.request.user
+        context['avatar'] = Avatar.objects.get(user=self.request.user.id)
+        return context
+
+
+class AvatarAddView(CreateView):
+    model = Avatar
+    template_name = 'add_avatar.html'
+    form_class = AddAvatar
+    success_url = reverse_lazy('index')
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)

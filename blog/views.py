@@ -2,9 +2,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
-from .forms import LogIn, AddTopic, AddPost, AddAvatar
-from .models import User, Topic, Post, Avatar
-# from django.contrib.auth.models import Group
+from .forms import LogIn, AddTopic, AddPost, AddAvatar, RegistrationForm
+from .models import Topic, Post, Avatar
+from django.contrib.auth.models import Group
 from django.views.generic.base import TemplateView, RedirectView
 from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, FormView
@@ -19,14 +19,16 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Home'
         context['user'] = self.request.user
+        print(self.request.user)
+        if self.request.user.is_authenticated and len(self.request.user.groups.all()) == 0:
+            self.request.user.groups.add(Group.objects.get(name='green_apples'))
         return context
 
 
 class RegistrationView(CreateView):
-    model = User
-    fields = ['username', 'email', 'password']
+    form_class = RegistrationForm
     template_name = 'registration.html'
-    success_url = reverse_lazy('index')
+    success_url = reverse_lazy('login')
 
 
 class LoginView(FormView):
@@ -100,7 +102,7 @@ class ProfileView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.request.user.username} Profile'
         context['user'] = self.request.user
-        context['avatar'] = Avatar.objects.get(user=self.request.user.id)
+        # context['avatar'] = Avatar.objects.get(user=self.request.user.id)
         return context
 
 

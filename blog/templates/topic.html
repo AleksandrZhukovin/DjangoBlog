@@ -4,7 +4,7 @@
 
 <h3>{{ topic.name }}</h3>
 {% for c in comments %}
-<p><b>{{ c.user.username }}</b> {{ c.time }} {{ c.body }}</p>
+<p><b>{{ c.user.username }}</b> {{ c.time }}<br>      {{ c.body }}<a href="/grade{{ c.id }}">+</a>  <b>{{ c.grade }}</b></p>
 {% endfor %}
 
 <form method="POST">

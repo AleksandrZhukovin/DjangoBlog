@@ -1,13 +1,14 @@
 from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
 from .forms import LogIn, AddTopic, AddPost, AddAvatar, RegistrationForm
-from .models import Topic, Post, Avatar
+from .models import Topic, Post, Avatar, Level
 from django.contrib.auth.models import Group
 from django.views.generic.base import TemplateView, RedirectView
 from django.views.generic.list import ListView
-from django.views.generic.edit import CreateView, FormView
+from django.views.generic.edit import CreateView, FormView, UpdateView
 
 
 class HomeView(ListView):
@@ -19,9 +20,13 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Home'
         context['user'] = self.request.user
-        print(self.request.user)
         if self.request.user.is_authenticated and len(self.request.user.groups.all()) == 0:
             self.request.user.groups.add(Group.objects.get(name='green_apples'))
+        try:
+            Level.objects.get(user=self.request.user)
+        except:
+            level = Level(user=self.request.user)
+            level.save()
         return context
 
 
@@ -102,6 +107,7 @@ class ProfileView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = f'{self.request.user.username} Profile'
         context['user'] = self.request.user
+        context['level'] = Level.objects.get(user=self.request.user)
         # context['avatar'] = Avatar.objects.get(user=self.request.user.id)
         return context
 
@@ -115,3 +121,18 @@ class AvatarAddView(CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
+
+
+class GradeRiseCommentView(UpdateView):
+    model = Post
+    fields = []
+
+    def dispatch(self, request, *args, **kwargs):
+        post = Post.objects.get(id=self.kwargs['pk'])
+        post.grade += 1
+        post.save()
+        return redirect(f'/topic{post.topic.id}/')
+
+
+
+

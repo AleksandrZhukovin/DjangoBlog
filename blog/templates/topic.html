@@ -2,9 +2,22 @@
 
 {% block content %}
 
-<h3>{{ topic.name }}</h3>
-{% for c in comments %}
-<p><b>{{ c.user.username }}</b> {{ c.time }}<br>      {{ c.body }}<a href="/grade{{ c.id }}">+</a>  <b>{{ c.grade }}</b></p>
+<h3>{{ c.0.topic.name }}</h3>
+
+{% for post in posts %}
+  <p>
+    <b>{{ post.0.user.username }}</b> {{ post.0.time }}<br>{{ post.0.body }}
+    <b>{{ post.0.grade }}</b>
+    {% if user in post.1 %}
+      <a href="/grade_minus{{ post.0.id }}">-</a>
+    {% else %}
+      <a href="/grade{{ post.0.id }}">+</a>
+    {% endif %}
+    {% if user == post.0.user %}
+    <a href="/edit_post{{ c.id }}">Edit</a>
+    <a href="/delete_post{{ c.id }}">Delete</a>
+    {% endif %}
+  </p>
 {% endfor %}
 
 <form method="POST">

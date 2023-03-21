@@ -21,7 +21,7 @@ class Post(models.Model):
 
 class Avatar(models.Model):
     id = models.IntegerField(primary_key=True)
-    avatar = models.ImageField(upload_to='avatars')
+    avatar = models.FileField(upload_to='static/avatars')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 
@@ -30,3 +30,9 @@ class Level(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     answer = models.IntegerField(default=0)
     question = models.IntegerField(default=0)
+
+
+class Like(models.Model):
+    id = models.IntegerField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)

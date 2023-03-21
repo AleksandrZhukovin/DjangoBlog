@@ -1,14 +1,13 @@
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy
-from django.utils.decorators import method_decorator
 from .forms import LogIn, AddTopic, AddPost, AddAvatar, RegistrationForm
-from .models import Topic, Post, Avatar, Level
+from .models import Topic, Post, Avatar, Level, Like
 from django.contrib.auth.models import Group
 from django.views.generic.base import TemplateView, RedirectView
 from django.views.generic.list import ListView
-from django.views.generic.edit import CreateView, FormView, UpdateView
+from django.views.generic.edit import CreateView, FormView, UpdateView, DeleteView
+import os
 
 
 class HomeView(ListView):
@@ -20,13 +19,25 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Home'
         context['user'] = self.request.user
+        level = Level.objects.get(user=self.request.user)
+        likes = Like.objects.filter(user=self.request.user)
         if self.request.user.is_authenticated and len(self.request.user.groups.all()) == 0:
             self.request.user.groups.add(Group.objects.get(name='green_apples'))
-        try:
-            Level.objects.get(user=self.request.user)
-        except:
-            level = Level(user=self.request.user)
-            level.save()
+
+        if 5 <= level.answer < 30 and 2 <= len(likes) < 50:
+            self.request.user.groups.clear()
+            self.request.user.groups.add(Group.objects.get(name='growing up puppy'))
+
+        if level.answer >= 30 and 50 <= len(likes) == 50:
+            self.request.user.groups.clear()
+            self.request.user.groups.add(Group.objects.get(name='sensei'))
+
+        if self.request.user.is_authenticated:
+            try:
+                Level.objects.get(user=self.request.user)
+            except:
+                level = Level(user=self.request.user)
+                level.save()
         return context
 
 
@@ -69,7 +80,6 @@ class AddTopicView(CreateView):
     form_class = AddTopic
     success_url = reverse_lazy('index')
 
-    @method_decorator(login_required)
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
@@ -88,12 +98,23 @@ class TopicView(CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         form.instance.topic = Topic.objects.get(id=self.kwargs['pk'])
+        level = Level.objects.get(user=self.request.user)
+        level.answer += 1
+        level.save()
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Topic'
-        context['comments'] = Post.objects.filter(topic=Topic.objects.get(id=self.kwargs['pk']))
+        context['user'] = self.request.user
+        posts = []
+        n = 0
+        for p in Post.objects.filter(topic=Topic.objects.get(id=self.kwargs['pk'])):
+            p.grade = len(Like.objects.filter(user=self.request.user.id, post=p))
+            posts.append([p])
+            posts[n].append([i.user for i in Like.objects.filter(user=self.request.user.id, post=p)])
+            n += 1
+        context['posts'] = posts
         return context
 
     def get_success_url(self):
@@ -108,7 +129,11 @@ class ProfileView(TemplateView):
         context['title'] = f'{self.request.user.username} Profile'
         context['user'] = self.request.user
         context['level'] = Level.objects.get(user=self.request.user)
-        # context['avatar'] = Avatar.objects.get(user=self.request.user.id)
+        try:
+            context['avatar'] = Avatar.objects.get(user=self.request.user.id).avatar.url
+        except:
+            context['avatar'] = None
+        context['topics'] = Topic.objects.filter(user=self.request.user)
         return context
 
 
@@ -119,6 +144,11 @@ class AvatarAddView(CreateView):
     success_url = reverse_lazy('index')
 
     def form_valid(self, form):
+        avatars = Avatar.objects.all()
+        for a in avatars:
+            if a.user.id == self.request.user.id:
+                os.remove(a.avatar.path.replace(os.sep, '/'))
+                a.delete()
         form.instance.user = self.request.user
         return super().form_valid(form)
 
@@ -131,8 +161,68 @@ class GradeRiseCommentView(UpdateView):
         post = Post.objects.get(id=self.kwargs['pk'])
         post.grade += 1
         post.save()
+        like = Like(post=post, user=self.request.user)
+        like.save()
         return redirect(f'/topic{post.topic.id}/')
 
 
+class GradeMinusComment(UpdateView):
+    model = Post
+    fields = []
+
+    def dispatch(self, request, *args, **kwargs):
+        post = Post.objects.get(id=self.kwargs['pk'])
+        like = Like.objects.get(post=post, user=self.request.user)
+        like.delete()
+        return redirect(f'/topic{post.topic.id}/')
 
 
+class EditPostVies(UpdateView):
+    model = Post
+    fields = ['body']
+    template_name = 'edit_post.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Edit Post'
+        context['comments'] = Post.objects.filter(topic=Post.objects.get(id=self.kwargs['pk']).topic)
+        context['post'] = Post.objects.get(id=self.kwargs['pk'])
+        return context
+
+    def get_success_url(self):
+        return f'/topic{Post.objects.filter(topic=Post.objects.get(id=self.kwargs["pk"]).topic)[0].topic.id}/'
+
+
+class DeletePost(DeleteView):
+    model = Post
+    template_name = 'delete_post.html'
+
+    def get_success_url(self):
+        return f'/topic{Post.objects.filter(topic=Post.objects.get(id=self.kwargs["pk"]).topic)[0].topic.id}/'
+
+
+class DeleteTopic(DeleteView):
+    model = Topic
+    template_name = 'delete_topic.html'
+
+    def form_valid(self, form):
+        for p in Post.objects.get(id=self.kwargs['pk']):
+            p.delete()
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return f'/profile/'
+
+
+class EditTopic(UpdateView):
+    model = Topic
+    template_name = 'edit_topic.html'
+    form_class = AddTopic
+    success_url = '/profile'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        topic = Topic.objects.get(id=self.kwargs['pk'])
+        self.initial = {'name': topic.name, 'text': topic.text}
+        context['title'] = 'Edit Topic'
+        return context

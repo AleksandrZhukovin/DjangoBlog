@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h3>{{ c.0.topic.name }}</h3>
+{% for c in comments %}
+  <p>
+    <b>{{ c.user.username }}</b> {{ c.time }}<br>{{ c.body }}<a href="/grade{{ c.id }}">+</a>  <b>{{ c.grade }}</b>
+    {% if c.id == post.id %}
+      <form method="POST">
+        {% csrf_token %}
+        {{ form }}
+        <input type="submit" value="Add">
+      </form>
+    {% endif %}
+  </p>
+{% endfor %}
+
+<form method="POST">
+  {% csrf_token %}
+  {{ form }}
+  <input type="submit" value="Add">
+</form>
+
+{% endblock %}

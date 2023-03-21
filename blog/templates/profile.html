@@ -1,7 +1,13 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-<h1>{{ user.username }} {{ user.date_joined }} {{ user.groups.all.0 }} {{ level.question }}</h1>
+<img src="{{ avatar }}" alt="abc" height="100" width="100">
+<a href="/add_avatar">Add Ava</a>
+<h1>{{ user.username }} {{ user.date_joined }} {{ user.groups.all }} {{ level.answer }}</h1>
+{% for topic in topics %}
+<p>
+    {{ topic.name }} <a href="/edit_topic{{ topic.id }}">Edit</a> <a href="/delete_topic{{ topic.id }}">Delete</a><br>
+</p>
+{% endfor %}
 
 {% endblock %}

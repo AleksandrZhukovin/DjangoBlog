@@ -19,25 +19,26 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Home'
         context['user'] = self.request.user
-        level = Level.objects.get(user=self.request.user)
-        likes = Like.objects.filter(user=self.request.user)
-        if self.request.user.is_authenticated and len(self.request.user.groups.all()) == 0:
-            self.request.user.groups.add(Group.objects.get(name='green_apples'))
-
-        if 5 <= level.answer < 30 and 2 <= len(likes) < 50:
-            self.request.user.groups.clear()
-            self.request.user.groups.add(Group.objects.get(name='growing up puppy'))
-
-        if level.answer >= 30 and 50 <= len(likes) == 50:
-            self.request.user.groups.clear()
-            self.request.user.groups.add(Group.objects.get(name='sensei'))
-
         if self.request.user.is_authenticated:
             try:
                 Level.objects.get(user=self.request.user)
             except:
                 level = Level(user=self.request.user)
                 level.save()
+
+        if self.request.user.is_authenticated and len(self.request.user.groups.all()) == 0:
+            self.request.user.groups.add(Group.objects.get(name='Green Apples'))
+        if self.request.user.is_authenticated:
+            level = Level.objects.get(user=self.request.user)
+            likes = Like.objects.filter(user=self.request.user)
+            if 5 <= level.answer < 30 and 2 <= len(likes) < 50:
+                self.request.user.groups.clear()
+                self.request.user.groups.add(Group.objects.get(name='Growing Up Puppy'))
+
+            if level.answer >= 30 and 50 <= len(likes) == 50:
+                self.request.user.groups.clear()
+                self.request.user.groups.add(Group.objects.get(name='Sensei'))
+
         return context
 
 
@@ -45,6 +46,11 @@ class RegistrationView(CreateView):
     form_class = RegistrationForm
     template_name = 'registration.html'
     success_url = reverse_lazy('login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Sign Up'
+        return context
 
 
 class LoginView(FormView):
@@ -107,10 +113,22 @@ class TopicView(CreateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Topic'
         context['user'] = self.request.user
+
+        try:
+            context['avatar'] = Avatar.objects
+        except:
+            context['avatar'] = None
+        context['topic'] = Topic.objects.get(id=self.kwargs['pk'])
+
+        try:
+            context['creator_avatar'] = Avatar.objects.get(user=Topic.objects.get(id=self.kwargs['pk']).user).avatar.url
+        except:
+            context['creator_avatar'] = None
+
         posts = []
         n = 0
         for p in Post.objects.filter(topic=Topic.objects.get(id=self.kwargs['pk'])):
-            p.grade = len(Like.objects.filter(user=self.request.user.id, post=p))
+            p.grade = len(Like.objects.filter(post=p))
             posts.append([p])
             posts[n].append([i.user for i in Like.objects.filter(user=self.request.user.id, post=p)])
             n += 1
@@ -129,6 +147,7 @@ class ProfileView(TemplateView):
         context['title'] = f'{self.request.user.username} Profile'
         context['user'] = self.request.user
         context['level'] = Level.objects.get(user=self.request.user)
+        context['likes'] = len(Like.objects.filter(user=self.request.user))
         try:
             context['avatar'] = Avatar.objects.get(user=self.request.user.id).avatar.url
         except:
@@ -141,7 +160,12 @@ class AvatarAddView(CreateView):
     model = Avatar
     template_name = 'add_avatar.html'
     form_class = AddAvatar
-    success_url = reverse_lazy('index')
+    success_url = reverse_lazy('profile')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Add Avatar'
+        return context
 
     def form_valid(self, form):
         avatars = Avatar.objects.all()
@@ -185,8 +209,28 @@ class EditPostVies(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Edit Post'
-        context['comments'] = Post.objects.filter(topic=Post.objects.get(id=self.kwargs['pk']).topic)
-        context['post'] = Post.objects.get(id=self.kwargs['pk'])
+        context['post_e'] = Post.objects.get(id=self.kwargs['pk'])
+        context['user'] = self.request.user
+
+        try:
+            context['avatar'] = Avatar.objects.get(user=self.request.user.id).avatar.url
+        except:
+            context['avatar'] = None
+        context['topic'] = Post.objects.get(id=self.kwargs['pk']).topic
+
+        try:
+            context['creator_avatar'] = Avatar.objects.get(user=Post.objects.get(id=self.kwargs['pk']).topic.user).avatar.url
+        except:
+            context['creator_avatar'] = None
+
+        posts = []
+        n = 0
+        for p in Post.objects.filter(topic=Post.objects.get(id=self.kwargs['pk']).topic):
+            p.grade = len(Like.objects.filter(user=self.request.user.id, post=p))
+            posts.append([p])
+            posts[n].append([i.user for i in Like.objects.filter(user=self.request.user.id, post=p)])
+            n += 1
+        context['posts'] = posts
         return context
 
     def get_success_url(self):
@@ -197,6 +241,11 @@ class DeletePost(DeleteView):
     model = Post
     template_name = 'delete_post.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Delete Post'
+        return context
+
     def get_success_url(self):
         return f'/topic{Post.objects.filter(topic=Post.objects.get(id=self.kwargs["pk"]).topic)[0].topic.id}/'
 
@@ -205,8 +254,13 @@ class DeleteTopic(DeleteView):
     model = Topic
     template_name = 'delete_topic.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Delete Topic'
+        return context
+
     def form_valid(self, form):
-        for p in Post.objects.get(id=self.kwargs['pk']):
+        for p in Post.objects.filter(id=self.kwargs['pk']):
             p.delete()
         return super().form_valid(form)
 

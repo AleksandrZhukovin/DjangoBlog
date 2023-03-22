@@ -1,14 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-  <form method='post' enctype="multipart/form-data">
-      {% csrf_token %}
-          {{ form }}
-      <input type="submit" value="OK">
-  </form>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+    <div class="text-center my-4">
+        <h2 class="my-3">Add Avatar</h2>
+        <form method='post' enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+                {{ field.errors }}
+                <p>{{ field.label_tag }}<br> {{ field }}</p><br>
+            {% endfor %}
+            <input class="btn btn-secondary" type="submit" value="Add">
+        </form>
+    </div>
+</div>
+
+{% endblock %}

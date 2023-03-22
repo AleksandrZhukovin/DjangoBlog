@@ -1,13 +1,41 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<img src="{{ avatar }}" alt="abc" height="100" width="100">
-<a href="/add_avatar">Add Ava</a>
-<h1>{{ user.username }} {{ user.date_joined }} {{ user.groups.all }} {{ level.answer }}</h1>
-{% for topic in topics %}
-<p>
-    {{ topic.name }} <a href="/edit_topic{{ topic.id }}">Edit</a> <a href="/delete_topic{{ topic.id }}">Delete</a><br>
-</p>
-{% endfor %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-12 text-center my-3">
+            {% if avatar %}
+                <img src="{{ avatar }}" height="200" width="200">
+            {% else %}
+                <img src="/static/none.jpg" height="200" width="200">
+            {% endif %}
+            <a class="btn btn-outline-secondary my-3" href="/add_avatar">Add Ava</a>
+        </div>
+        <div class="col-lg-10 col-md-10 col-12 my-3">
+            <h2>{{ user.username }}</h2>
+
+            <h4>Level: <b>{{ user.groups.all.0 }}</b></h4>
+            <h4>Answers: <b>{{ level.answer }}</b></h4>
+            <h4>Likes: <b>{{ likes }}</b></h4>
+            <h4>Joined: <b>{{ user.date_joined }}</b></h4>
+
+            <div class="text-center my-5">
+                {% if topics %}
+                    <h3>Created Topics</h3>
+                    {% for topic in topics %}
+                    <h4 class="my-3">
+                        {{ topic.name }} <a class="btn btn-outline-secondary" href="/edit_topic{{ topic.id }}">Edit</a>
+                          <a class="btn btn-outline-secondary" href="/delete_topic{{ topic.id }}">Delete</a><br>
+                    </h4>
+                    {% endfor %}
+                {% else %}
+                <h4>No Created Topics</h4>
+                <a href="/add_topic" class="btn btn-outline-secondary my-3">Add Topic</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 
 {% endblock %}

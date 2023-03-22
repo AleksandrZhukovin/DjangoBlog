@@ -2,28 +2,68 @@
 
 {% block content %}
 
-<h3>{{ c.0.topic.name }}</h3>
-
-{% for post in posts %}
-  <p>
-    <b>{{ post.0.user.username }}</b> {{ post.0.time }}<br>{{ post.0.body }}
-    <b>{{ post.0.grade }}</b>
-    {% if user in post.1 %}
-      <a href="/grade_minus{{ post.0.id }}">-</a>
+<div class="container-fluid">
+    <div class="row bg-light mb-3">
+        <h1 class="text-center my-3">{{ topic.name }}</h1>
+            <div class="col-lg-2 col-md-2 col-4">
+                  {% if creator_avatar %}
+                      <img src="{{ creator_avatar }}" height="50" width="50">
+                  {% else %}
+                      <img src="/static/none.jpg" height="50" width="50">
+                  {% endif %}
+               <p>
+                   {{ topic.user.username }}<br>
+                   {{ topic.time }}<br>
+               </p>
+            </div>
+            <div class="col-lg-8 col-md-8 col-8">
+              <p>{{ topic.text }}</p>
+            </div>
+        </div>
+</div>
+<div class="container">
+    <h2 class="text-center mt-3">Discussion</h2>
+    {% if posts %}
+        {% for post in posts %}
+            <div class="row">
+                <div class="col-lg-2 col-md-2 col-4">
+                      {% if avatar %}
+                          <img src="/static/none.jpg" height="50" width="50">
+                      {% else %}
+                          <img src="/static/none.jpg" height="50" width="50">
+                      {% endif %}
+                   <p>
+                       {{ post.0.user.username }}<br>
+                       {{ post.0.time }}<br>
+                       <b>{{ post.0.grade }}</b>
+                       {% if user in post.1 %}
+                            <a href="/grade_minus{{ post.0.id }}">-</a><br>
+                       {% else %}
+                            <a href="/grade{{ post.0.id }}">+</a><br>
+                       {% endif %}
+                       {% if user == post.0.user %}
+                          <a class="btn btn-outline-secondary" href="/edit_post{{ post.0.id }}">Edit</a> <a class="btn btn-outline-secondary" href="/delete_post{{ post.0.id }}">Delete</a>
+                       {% endif %}
+                   </p>
+                </div>
+                <div class="col-lg-8 col-md-8 col-8">
+                  <p>{{ post.0.body }}</p>
+                </div>
+            </div>
+            <hr>
+        {% endfor %}
     {% else %}
-      <a href="/grade{{ post.0.id }}">+</a>
+        <h4 class="text-center text-secondary my-3">No comments yet.<br>You will be the first!</h4>
     {% endif %}
-    {% if user == post.0.user %}
-    <a href="/edit_post{{ c.id }}">Edit</a>
-    <a href="/delete_post{{ c.id }}">Delete</a>
-    {% endif %}
-  </p>
-{% endfor %}
 
-<form method="POST">
-  {% csrf_token %}
-  {{ form }}
-  <input type="submit" value="Add">
-</form>
+    <form method="POST">
+      {% csrf_token %}
+      {% for field in form %}
+          {{ field.errors }}
+          <p> {{ field }}</p>
+      {% endfor %}
+      <input class="btn btn-outline-secondary" type="submit" value="Add">
+    </form>
+</div>
 
 {% endblock %}

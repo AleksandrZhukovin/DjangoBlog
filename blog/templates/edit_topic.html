@@ -2,10 +2,18 @@
 
 {% block content %}
 
-<form method="POST">
-  {% csrf_token %}
-  {{ form }}
-  <input type="submit" value="Add">
-</form>
+<div class="container">
+    <div class="text-center my-4">
+        <h2 class="my-3">Edit</h2>
+        <form method="POST">
+            {% csrf_token %}
+            {% for field in form %}
+                {{ field.errors }}
+                <p>{{ field.label_tag }}<br> {{ field }}</p><br>
+            {% endfor %}
+            <input class="btn btn-secondary" type="submit" value="Edit">
+        </form>
+    </div>
+</div>
 
 {% endblock %}

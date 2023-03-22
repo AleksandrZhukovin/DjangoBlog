@@ -2,10 +2,18 @@
 
 {% block content %}
 
-<form method="POST">
-    {% csrf_token %}
-        {{ form }}
-    <input type="submit" value="OK">
-</form>
+<div class="container">
+    <div class="text-center my-4">
+        <h2 class="my-3">Log In</h2>
+        <form method="POST">
+            {% csrf_token %}
+            {% for field in form %}
+                {{ field.errors }}
+                <p>{{ field.label_tag }}<br> {{ field }}</p><br>
+            {% endfor %}
+            <input class="btn btn-secondary" type="submit" value="Log In">
+        </form>
+    </div>
+</div>
 
 {% endblock %}

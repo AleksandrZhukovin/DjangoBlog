@@ -3,11 +3,6 @@ from .models import Topic, Post, User, Avatar
 from django.contrib.auth.forms import UserCreationForm
 
 
-class LogIn(forms.Form):
-    name = forms.CharField()
-    password = forms.CharField(widget=forms.PasswordInput)
-
-
 class AddTopic(forms.ModelForm):
     class Meta:
         model = Topic
@@ -23,7 +18,7 @@ class AddPost(forms.ModelForm):
 class AddAvatar(forms.ModelForm):
     class Meta:
         model = Avatar
-        fields = ['avatar']
+        fields = ['file']
 
 
 class RegistrationForm(UserCreationForm):

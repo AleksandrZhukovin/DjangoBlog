@@ -37,7 +37,7 @@
             <hr>
             {% if topics %}
                 {% for t in topics %}
-                    <h4>{{ t.name }} {{ t.time }} <a class="btn btn-outline-secondary" href="/topic{{ t.id }}">GO</a></h4>
+                    <h4>{{ t.name }} {{ t.created_at }} <a class="btn btn-outline-secondary" href="/topic{{ t.id }}">GO</a></h4>
                     <hr>
                 {% endfor %}
             {% else %}

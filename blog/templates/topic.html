@@ -13,7 +13,7 @@
                   {% endif %}
                <p>
                    {{ topic.user.username }}<br>
-                   {{ topic.time }}<br>
+                   {{ topic.created_at }}<br>
                </p>
             </div>
             <div class="col-lg-8 col-md-8 col-8">
@@ -34,7 +34,7 @@
                       {% endif %}
                    <p>
                        {{ post.0.user.username }}<br>
-                       {{ post.0.time }}<br>
+                       {{ post.0.created_at }}<br>
                        <b>{{ post.0.grade }}</b>
                        {% if user in post.1 %}
                             <a href="/grade_minus{{ post.0.id }}">-</a><br>

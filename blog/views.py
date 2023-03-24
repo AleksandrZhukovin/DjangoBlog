@@ -1,12 +1,13 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.views import LoginView, LogoutView
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from .forms import LogIn, AddTopic, AddPost, AddAvatar, RegistrationForm
+from .forms import AddTopic, AddPost, AddAvatar, RegistrationForm
 from .models import Topic, Post, Avatar, Level, Like
 from django.contrib.auth.models import Group
-from django.views.generic.base import TemplateView, RedirectView
+from django.views.generic.base import TemplateView
 from django.views.generic.list import ListView
-from django.views.generic.edit import CreateView, FormView, UpdateView, DeleteView
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
 import os
 
 
@@ -16,28 +17,25 @@ class HomeView(ListView):
     context_object_name = 'topics'
 
     def get_context_data(self, *, object_list=None, **kwargs):
+        user = self.request.user
         context = super().get_context_data(**kwargs)
         context['title'] = 'Home'
-        context['user'] = self.request.user
-        if self.request.user.is_authenticated:
-            try:
-                Level.objects.get(user=self.request.user)
-            except:
-                level = Level(user=self.request.user)
-                level.save()
+        context['user'] = user
+        if user.is_authenticated:
+            obj, created = Level.objects.get_or_create(user=user)
 
-        if self.request.user.is_authenticated and len(self.request.user.groups.all()) == 0:
-            self.request.user.groups.add(Group.objects.get(name='Green Apples'))
-        if self.request.user.is_authenticated:
-            level = Level.objects.get(user=self.request.user)
-            likes = Like.objects.filter(user=self.request.user)
+        if user.is_authenticated and len(user.groups.all()) == 0:
+            user.groups.add(Group.objects.get(name='Green Apples'))
+        if user.is_authenticated:
+            level = Level.objects.get(user=user)
+            likes = Like.objects.filter(user=user)
             if 5 <= level.answer < 30 and 2 <= len(likes) < 50:
-                self.request.user.groups.clear()
-                self.request.user.groups.add(Group.objects.get(name='Growing Up Puppy'))
+                user.groups.clear()
+                user.groups.add(Group.objects.get(name='Growing Up Puppy'))
 
             if level.answer >= 30 and 50 <= len(likes) == 50:
-                self.request.user.groups.clear()
-                self.request.user.groups.add(Group.objects.get(name='Sensei'))
+                user.groups.clear()
+                user.groups.add(Group.objects.get(name='Sensei'))
 
         return context
 
@@ -53,31 +51,15 @@ class RegistrationView(CreateView):
         return context
 
 
-class LoginView(FormView):
+class Login(LoginView):
     template_name = 'login.html'
-    form_class = LogIn
-    success_url = reverse_lazy('index')
 
-    def form_valid(self, form):
-        username = form.cleaned_data['name']
-        password = form.cleaned_data['password']
-        user = authenticate(self.request, username=username, password=password)
-        if user is not None:
-            login(self.request, user)
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Log In'
-        return context
+    redirect_authenticated_user = True
+    extra_context = {'title': 'Log In'}
 
 
-class LogoutView(RedirectView):
-    pattern_name = 'index'
-
-    def get_redirect_url(self, *args, **kwargs):
-        logout(self.request)
-        return super().get_redirect_url(*args, **kwargs)
+class Logout(LogoutView):
+    pass
 
 
 class AddTopicView(CreateView):
@@ -111,23 +93,23 @@ class TopicView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
         context['title'] = 'Topic'
         context['user'] = self.request.user
-
         try:
             context['avatar'] = Avatar.objects
-        except:
+        except Avatar.DoesNotExist:
             context['avatar'] = None
-        context['topic'] = Topic.objects.get(id=self.kwargs['pk'])
+        context['topic'] = Topic.objects.get(id=pk)
 
         try:
-            context['creator_avatar'] = Avatar.objects.get(user=Topic.objects.get(id=self.kwargs['pk']).user).avatar.url
-        except:
+            context['creator_avatar'] = Avatar.objects.get(user=Topic.objects.get(id=pk).user).file.url
+        except Avatar.DoesNotExist:
             context['creator_avatar'] = None
 
         posts = []
         n = 0
-        for p in Post.objects.filter(topic=Topic.objects.get(id=self.kwargs['pk'])):
+        for p in Post.objects.filter(topic=Topic.objects.get(id=pk)):
             p.grade = len(Like.objects.filter(post=p))
             posts.append([p])
             posts[n].append([i.user for i in Like.objects.filter(user=self.request.user.id, post=p)])
@@ -144,15 +126,16 @@ class ProfileView(TemplateView):
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = f'{self.request.user.username} Profile'
-        context['user'] = self.request.user
-        context['level'] = Level.objects.get(user=self.request.user)
-        context['likes'] = len(Like.objects.filter(user=self.request.user))
+        user = self.request.user
+        context['title'] = f'{user.username} Profile'
+        context['user'] = user
+        context['level'] = Level.objects.get(user=user)
+        context['likes'] = len(Like.objects.filter(user=user))
         try:
-            context['avatar'] = Avatar.objects.get(user=self.request.user.id).avatar.url
-        except:
+            context['avatar'] = Avatar.objects.get(user=user.id).file.url
+        except Avatar.DoesNotExist:
             context['avatar'] = None
-        context['topics'] = Topic.objects.filter(user=self.request.user)
+        context['topics'] = Topic.objects.filter(user=user)
         return context
 
 
@@ -208,27 +191,29 @@ class EditPostVies(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        pk = self.kwargs['pk']
+        user = self.request.user
         context['title'] = 'Edit Post'
-        context['post_e'] = Post.objects.get(id=self.kwargs['pk'])
-        context['user'] = self.request.user
+        context['post_e'] = Post.objects.get(id=pk)
+        context['user'] = user
 
         try:
-            context['avatar'] = Avatar.objects.get(user=self.request.user.id).avatar.url
-        except:
+            context['avatar'] = Avatar.objects.get(user=user.id).file.url
+        except Avatar.DoesNotExist:
             context['avatar'] = None
-        context['topic'] = Post.objects.get(id=self.kwargs['pk']).topic
+        context['topic'] = Post.objects.get(id=pk).topic
 
         try:
-            context['creator_avatar'] = Avatar.objects.get(user=Post.objects.get(id=self.kwargs['pk']).topic.user).avatar.url
-        except:
+            context['creator_avatar'] = Avatar.objects.get(user=Post.objects.get(id=pk).topic.user).file.url
+        except Avatar.DoesNotExist:
             context['creator_avatar'] = None
 
         posts = []
         n = 0
-        for p in Post.objects.filter(topic=Post.objects.get(id=self.kwargs['pk']).topic):
-            p.grade = len(Like.objects.filter(user=self.request.user.id, post=p))
+        for p in Post.objects.filter(topic=Post.objects.get(id=pk).topic):
+            p.grade = len(Like.objects.filter(user=user.id, post=p))
             posts.append([p])
-            posts[n].append([i.user for i in Like.objects.filter(user=self.request.user.id, post=p)])
+            posts[n].append([i.user for i in Like.objects.filter(user=user.id, post=p)])
             n += 1
         context['posts'] = posts
         return context

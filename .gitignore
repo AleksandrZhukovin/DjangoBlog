@@ -4,9 +4,7 @@
 *.pyc
 blogsite/__pycache__/
 blog/__pycache__/
-blog/migrations/
 media
-db.sqlite3
 
 # PyCharm
 .idea

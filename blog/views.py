@@ -1,4 +1,5 @@
 from django.contrib.auth.views import LoginView, LogoutView
+from django.utils.translation import gettext as _
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from .forms import AddTopic, AddPost, AddAvatar, RegistrationForm
@@ -18,7 +19,7 @@ class HomeView(ListView):
     def get_context_data(self, *, object_list=None, **kwargs):
         user = self.request.user
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Home'
+        context['title'] = _('Home')
         context['user'] = user
         if user.is_authenticated:
             obj, created = Level.objects.get_or_create(user=user)
@@ -46,7 +47,7 @@ class RegistrationView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Sign Up'
+        context['title'] = _('Sign Up')
         return context
 
 
@@ -54,7 +55,7 @@ class Login(LoginView):
     template_name = 'login.html'
 
     redirect_authenticated_user = True
-    extra_context = {'title': 'Log In'}
+    extra_context = {'title': _('Log In')}
 
 
 class Logout(LogoutView):
@@ -73,7 +74,7 @@ class AddTopicView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Add Topic'
+        context['title'] = _('Add Topic')
         return context
 
 
@@ -93,7 +94,7 @@ class TopicView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
-        context['title'] = 'Topic'
+        context['title'] = _('Topic')
         context['user'] = self.request.user
         try:
             context['avatar'] = Avatar.objects
@@ -126,7 +127,7 @@ class ProfileView(TemplateView):
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        context['title'] = f'{user.username} Profile'
+        context['title'] = _('{name} Profile').format(name=user.username)
         context['user'] = user
         context['level'] = Level.objects.get(user=user)
         context['likes'] = len(Like.objects.filter(user=user))
@@ -146,7 +147,7 @@ class AvatarAddView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Add Avatar'
+        context['title'] = _('Add Avatar')
         return context
 
     def form_valid(self, form):
@@ -192,7 +193,7 @@ class EditPostVies(UpdateView):
         context = super().get_context_data(**kwargs)
         pk = self.kwargs['pk']
         user = self.request.user
-        context['title'] = 'Edit Post'
+        context['title'] = _('Edit Post')
         context['post_e'] = Post.objects.get(id=pk)
         context['user'] = user
 
@@ -227,7 +228,7 @@ class DeletePost(DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Delete Post'
+        context['title'] = _('Delete Post')
         return context
 
     def get_success_url(self):
@@ -240,7 +241,7 @@ class DeleteTopic(DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Delete Topic'
+        context['title'] = _('Delete Topic')
         return context
 
     def form_valid(self, form):
@@ -262,5 +263,5 @@ class EditTopic(UpdateView):
         context = super().get_context_data(**kwargs)
         topic = Topic.objects.get(id=self.kwargs['pk'])
         self.initial = {'name': topic.name, 'text': topic.text}
-        context['title'] = 'Edit Topic'
+        context['title'] = _('Edit Topic')
         return context
